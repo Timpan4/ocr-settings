@@ -18,7 +18,7 @@ const DEFAULTS: Settings = {
   noFilter: false,
   exclude: [],
   maxTokensBudget: 0,
-  timeoutMinutes: 0,
+  timeoutMinutes: 15,
 };
 
 function escapeHtml(value: string): string {
@@ -89,10 +89,10 @@ ${banner}
 <p class="hint" id="exclude-hint">One gitignore-style pattern per line. Merged with each repository's <code>rule.json</code> excludes.</p>
 <textarea id="exclude" name="exclude" aria-describedby="exclude-hint" spellcheck="false">${escapeHtml(settings.exclude.join("\n"))}</textarea>
 <label for="maxTokensBudget">Token budget per review</label>
-<p class="hint" id="budget-hint"><code>--max-tokens-budget</code>. 0 means no cap.</p>
+<p class="hint" id="budget-hint"><code>--max-tokens-budget</code>. A soft limit checked before each LLM round: a group already over it gets one final round. 0 means no budget.</p>
 <input type="number" id="maxTokensBudget" name="maxTokensBudget" min="0" step="1" required value="${settings.maxTokensBudget}" aria-describedby="budget-hint">
-<label for="timeoutMinutes">Review timeout (minutes)</label>
-<p class="hint" id="timeout-hint"><code>--timeout</code>. 0 means no limit; the job itself stops at 60 minutes.</p>
+<label for="timeoutMinutes">Timeout per review group (minutes)</label>
+<p class="hint" id="timeout-hint"><code>--timeout</code>, multiplied by the template's review rounds. OCR's default is 15. 0 means no limit; the job itself stops at 60 minutes.</p>
 <input type="number" id="timeoutMinutes" name="timeoutMinutes" min="0" step="1" required value="${settings.timeoutMinutes}" aria-describedby="timeout-hint">
 <button type="submit">Save and commit</button>
 </form>
