@@ -26,6 +26,9 @@ export const SETTING_KEYS = [
 export class SettingsError extends Error {}
 
 const MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/;
+// The review job's timeout-minutes in Timpan4/ocr-review. A longer group timeout
+// can never fire, and much larger values overflow OCR's duration and disable it.
+export const MAX_TIMEOUT_MINUTES = 60;
 const WHOLE = /^[0-9]+$/;
 
 function isEffort(value: unknown): value is Effort {
@@ -73,6 +76,9 @@ export function parseSettings(value: unknown): Settings {
     if (typeof number !== "number" || !Number.isSafeInteger(number) || number < 0) {
       throw new SettingsError(`${name} must be a whole number, 0 or more.`);
     }
+  }
+  if ((timeoutMinutes as number) > MAX_TIMEOUT_MINUTES) {
+    throw new SettingsError(`Timeout must be at most ${MAX_TIMEOUT_MINUTES} minutes, the review job's own limit.`);
   }
   return {
     model,

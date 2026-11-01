@@ -1,5 +1,5 @@
 import { ConflictError, type SettingsStore } from "./github";
-import { changedKeys, EFFORTS, parseForm, type Settings, SettingsError } from "./settings";
+import { changedKeys, EFFORTS, MAX_TIMEOUT_MINUTES, parseForm, type Settings, SettingsError } from "./settings";
 
 export interface HandlerOptions {
   store: SettingsStore;
@@ -93,7 +93,7 @@ ${banner}
 <input type="number" id="maxTokensBudget" name="maxTokensBudget" min="0" step="1" required value="${settings.maxTokensBudget}" aria-describedby="budget-hint">
 <label for="timeoutMinutes">Timeout per review group (minutes)</label>
 <p class="hint" id="timeout-hint"><code>--timeout</code>, multiplied by the template's review rounds. OCR's default is 15. 0 means no limit; the job itself stops at 60 minutes.</p>
-<input type="number" id="timeoutMinutes" name="timeoutMinutes" min="0" step="1" required value="${settings.timeoutMinutes}" aria-describedby="timeout-hint">
+<input type="number" id="timeoutMinutes" name="timeoutMinutes" min="0" max="${MAX_TIMEOUT_MINUTES}" step="1" required value="${settings.timeoutMinutes}" aria-describedby="timeout-hint">
 <button type="submit">Save and commit</button>
 </form>
 </main>

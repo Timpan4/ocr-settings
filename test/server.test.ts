@@ -99,6 +99,7 @@ describe("settings page", () => {
       { ...valid, exclude: "src/**\u0000--no-filter" },
       { ...valid, maxTokensBudget: "-1" },
       { ...valid, timeoutMinutes: "1.5" },
+      { ...valid, timeoutMinutes: "61" },
     ]) {
       const response = await handler(store)(form(bad));
       expect(response.status).toBe(400);
