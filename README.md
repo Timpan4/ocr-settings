@@ -18,8 +18,10 @@ oauth2-proxy and Authentik sign-in (`wall-e-infra`, `apps/review-runners`).
 - Unchanged forms commit nothing. The commit message lists the changed keys and
   the signed-in user from oauth2-proxy's `X-Forwarded-Email` header.
 - POSTs whose `Origin` is not `PUBLIC_ORIGIN` are refused.
-- It listens on `127.0.0.1` by default. Only oauth2-proxy in the same pod
-  should reach it, because it trusts the forwarded user headers.
+- It has no login of its own and trusts the forwarded user headers, so only an
+  authenticating proxy may reach it. It listens on `127.0.0.1` by default. On
+  wall-e it listens on `0.0.0.0` in its own namespace, and a NetworkPolicy
+  admits only the oauth2-proxy pod.
 
 Commits come from the `ocr-settings` GitHub App, which has Contents read and
 write on `Timpan4/ocr-review` only.
