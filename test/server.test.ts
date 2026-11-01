@@ -96,6 +96,7 @@ describe("settings page", () => {
       { ...valid, model: "$(id)" },
       { ...valid, effort: "max" },
       { ...valid, exclude: "a,b" },
+      { ...valid, exclude: "src/**\u0000--no-filter" },
       { ...valid, maxTokensBudget: "-1" },
       { ...valid, timeoutMinutes: "1.5" },
     ]) {

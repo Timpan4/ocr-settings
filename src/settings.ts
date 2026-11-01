@@ -34,8 +34,10 @@ function isEffort(value: unknown): value is Effort {
 
 function checkExclude(patterns: string[]): void {
   for (const pattern of patterns) {
-    if (pattern === "" || /[,\r\n]/.test(pattern)) {
-      throw new SettingsError("Exclude patterns must not be empty or contain commas.");
+    // Same rule as the workflow: a comma or control character (NUL above all)
+    // would split the pattern into extra OCR arguments.
+    if (pattern === "" || /[,\x00-\x1f\x7f]/.test(pattern)) {
+      throw new SettingsError("Exclude patterns must not be empty or contain commas or control characters.");
     }
   }
 }
