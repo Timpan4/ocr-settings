@@ -25,8 +25,8 @@ const handler = createHandler({
   }),
 });
 
-// Listens on loopback by default: oauth2-proxy in the same pod is the only caller,
-// and it supplies the signed-in user's headers.
+// The page trusts the signed-in user's headers from the authenticating proxy,
+// so it listens on loopback unless LISTEN_HOST says otherwise.
 const server = Bun.serve({
   hostname: process.env.LISTEN_HOST ?? "127.0.0.1",
   port: Number(process.env.LISTEN_PORT ?? "8080"),
