@@ -15,6 +15,7 @@ const settings: Settings = {
   effort: "",
   noFilter: false,
   exclude: [],
+  include: [],
   maxTokensBudget: 0,
   timeoutMinutes: 0,
 };
@@ -62,6 +63,19 @@ describe("GitHub App", () => {
     const { calls, store } = fakeGitHub(200);
     expect(await store.read()).toEqual({ settings, problem: null, sha: "blob1" });
     expect(calls[1]?.url).toBe("https://api.github.com/repos/Timpan4/ocr-review/contents/settings.json?ref=main");
+  });
+
+  test("reads a settings.json from before include as an empty include", async () => {
+    const { include: _, ...legacy } = settings;
+    const { store } = fakeGitHub(200, JSON.stringify(legacy));
+    expect(await store.read()).toEqual({ settings, problem: null, sha: "blob1" });
+  });
+
+  test("reports an invalid include list instead of failing", async () => {
+    const { store } = fakeGitHub(200, JSON.stringify({ ...settings, include: "**/*.md" }));
+    const file = await store.read();
+    expect(file.settings).toBeNull();
+    expect(file.problem).toBe("include must be a list of patterns.");
   });
 
   test("reports an invalid committed file instead of failing", async () => {

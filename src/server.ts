@@ -17,6 +17,7 @@ const DEFAULTS: Settings = {
   effort: "",
   noFilter: false,
   exclude: [],
+  include: [],
   maxTokensBudget: 0,
   timeoutMinutes: 15,
 };
@@ -88,6 +89,9 @@ ${banner}
 <label for="exclude">Exclude patterns</label>
 <p class="hint" id="exclude-hint">One gitignore-style pattern per line. Merged with each repository's <code>rule.json</code> excludes.</p>
 <textarea id="exclude" name="exclude" aria-describedby="exclude-hint" spellcheck="false">${escapeHtml(settings.exclude.join("\n"))}</textarea>
+<label for="include">Include patterns</label>
+<p class="hint" id="include-hint">One gitignore-style pattern per line, such as <code>**/*.md</code>. Reviews matching files that OCR skips by default for their extension or path. Exclude patterns still win. A repository's own <code>.opencodereview/rule.json</code> replaces these.</p>
+<textarea id="include" name="include" aria-describedby="include-hint" spellcheck="false">${escapeHtml(settings.include.join("\n"))}</textarea>
 <label for="maxTokensBudget">Token budget per review</label>
 <p class="hint" id="budget-hint"><code>--max-tokens-budget</code>. A soft limit checked before each LLM round: a group already over it gets one final round. 0 means no budget.</p>
 <input type="number" id="maxTokensBudget" name="maxTokensBudget" min="0" step="1" required value="${settings.maxTokensBudget}" aria-describedby="budget-hint">
