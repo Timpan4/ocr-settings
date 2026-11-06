@@ -12,6 +12,7 @@ const current: Settings = {
   effort: "",
   noFilter: false,
   exclude: [],
+  include: [],
   maxTokensBudget: 0,
   timeoutMinutes: 0,
 };
@@ -37,7 +38,15 @@ function form(fields: Record<string, string>, origin = ORIGIN, path = "/settings
   });
 }
 
-const valid = { sha: SHA, model: "gpt-6.1-sol", effort: "high", exclude: "dist/**\n\n *.lock \n", maxTokensBudget: "500000", timeoutMinutes: "30" };
+const valid = {
+  sha: SHA,
+  model: "gpt-6.1-sol",
+  effort: "high",
+  exclude: "dist/**\n\n *.lock \n",
+  include: " **/*.md \r\n\r\ndocs/**/*.txt",
+  maxTokensBudget: "500000",
+  timeoutMinutes: "30",
+};
 
 function handler(store: SettingsStore) {
   return createHandler({ store, publicOrigin: ORIGIN, repoLabel: "Timpan4/ocr-review" });
@@ -45,12 +54,13 @@ function handler(store: SettingsStore) {
 
 describe("settings page", () => {
   test("shows the committed values with or without the /settings prefix", async () => {
-    const { store } = fakeStore({ settings: { ...current, exclude: ["<script>"] } });
+    const { store } = fakeStore({ settings: { ...current, exclude: ["<script>"], include: ["**/*.md", "docs/**"] } });
     for (const path of ["/settings/", "/"]) {
       const response = await handler(store)(new Request(`http://127.0.0.1:8080${path}`));
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).toContain('value="gpt-6.1-sol"');
+      expect(body).toContain('spellcheck="false">**/*.md\ndocs/**</textarea>');
       expect(body).toContain("&lt;script&gt;");
       expect(body).not.toContain("<script>");
     }
@@ -68,10 +78,11 @@ describe("settings page", () => {
       effort: "high",
       noFilter: false,
       exclude: ["dist/**", "*.lock"],
+      include: ["**/*.md", "docs/**/*.txt"],
       maxTokensBudget: 500000,
       timeoutMinutes: 30,
     });
-    expect(writes[0]?.message).toStartWith("chore(settings): update effort, exclude, maxTokensBudget, timeoutMinutes");
+    expect(writes[0]?.message).toStartWith("chore(settings): update effort, exclude, include, maxTokensBudget, timeoutMinutes");
     expect(writes[0]?.message).toContain("Saved by tim@example.com");
   });
 
@@ -97,6 +108,8 @@ describe("settings page", () => {
       { ...valid, effort: "max" },
       { ...valid, exclude: "a,b" },
       { ...valid, exclude: "src/**\u0000--no-filter" },
+      { ...valid, include: "**/*.{md,mdx}" },
+      { ...valid, include: "**/*.md\u0000" },
       { ...valid, maxTokensBudget: "-1" },
       { ...valid, timeoutMinutes: "1.5" },
       { ...valid, timeoutMinutes: "61" },

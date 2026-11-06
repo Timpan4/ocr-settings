@@ -48,9 +48,13 @@ bun run typecheck
 ```
 
 The validation rules in `src/settings.ts` must match the `Load settings` step
-in `Timpan4/ocr-review/.github/workflows/review.yml`.
+in `Timpan4/ocr-review/.github/workflows/review-app.yml`.
 
 ## Releases
 
 Push a `vX.Y.Z` tag. The release workflow tests, builds and pushes
 `ghcr.io/timpan4/ocr-settings:X.Y.Z`, and wall-e's Kargo pipeline promotes it.
+
+Release a new settings key here only after the `ocr-review` workflow that
+accepts it is on `v1`. Saving writes every key, so an earlier release would
+let a save add a key the running workflow rejects.

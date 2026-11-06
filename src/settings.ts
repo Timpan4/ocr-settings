@@ -1,6 +1,6 @@
 // Shared OpenCodeReview settings stored as settings.json in Timpan4/ocr-review.
 // Keep these rules identical to the "Load settings" step in that repository's
-// .github/workflows/review.yml, which validates the same file before a review.
+// .github/workflows/review-app.yml, which validates the same file before a review.
 
 export const EFFORTS = ["", "low", "medium", "high"] as const;
 export type Effort = (typeof EFFORTS)[number];
@@ -10,6 +10,7 @@ export interface Settings {
   effort: Effort;
   noFilter: boolean;
   exclude: string[];
+  include: string[];
   maxTokensBudget: number;
   timeoutMinutes: number;
 }
@@ -19,6 +20,7 @@ export const SETTING_KEYS = [
   "effort",
   "noFilter",
   "exclude",
+  "include",
   "maxTokensBudget",
   "timeoutMinutes",
 ] as const satisfies readonly (keyof Settings)[];
@@ -35,14 +37,19 @@ function isEffort(value: unknown): value is Effort {
   return EFFORTS.some((effort) => effort === value);
 }
 
-function checkExclude(patterns: string[]): void {
-  for (const pattern of patterns) {
+function parsePatterns(value: unknown, key: "exclude" | "include", label: string): string[] {
+  if (!Array.isArray(value) || !value.every((p): p is string => typeof p === "string")) {
+    throw new SettingsError(`${key} must be a list of patterns.`);
+  }
+  for (const pattern of value) {
     // Same rule as the workflow: a comma or control character (NUL above all)
-    // would split the pattern into extra OCR arguments.
+    // would split an exclude pattern into extra OCR arguments. include follows
+    // the same rule so both lists accept the same patterns.
     if (pattern === "" || /[,\x00-\x1f\x7f]/.test(pattern)) {
-      throw new SettingsError("Exclude patterns must not be empty or contain commas or control characters.");
+      throw new SettingsError(`${label} patterns must not be empty or contain commas or control characters.`);
     }
   }
+  return value;
 }
 
 /** Parses settings.json content, rejecting anything the workflow would reject. */
@@ -50,7 +57,9 @@ export function parseSettings(value: unknown): Settings {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new SettingsError("settings.json must be a JSON object.");
   }
-  const record = value as Record<string, unknown>;
+  // Rollout: settings.json on main gains include only after this page and the
+  // workflow are released, so a missing include reads as [], as the workflow does.
+  const record: Record<string, unknown> = { include: [], ...(value as Record<string, unknown>) };
   for (const key of Object.keys(record)) {
     if (!(SETTING_KEYS as readonly string[]).includes(key)) {
       throw new SettingsError(`settings.json has an unknown key: ${key}.`);
@@ -59,16 +68,14 @@ export function parseSettings(value: unknown): Settings {
   for (const key of SETTING_KEYS) {
     if (!(key in record)) throw new SettingsError(`settings.json is missing ${key}.`);
   }
-  const { model, effort, noFilter, exclude, maxTokensBudget, timeoutMinutes } = record;
+  const { model, effort, noFilter, maxTokensBudget, timeoutMinutes } = record;
   if (typeof model !== "string" || !MODEL.test(model)) {
     throw new SettingsError("Model must be a model name such as gpt-6.1-sol.");
   }
   if (!isEffort(effort)) throw new SettingsError("Effort must be default, low, medium or high.");
   if (typeof noFilter !== "boolean") throw new SettingsError("noFilter must be true or false.");
-  if (!Array.isArray(exclude) || !exclude.every((p): p is string => typeof p === "string")) {
-    throw new SettingsError("exclude must be a list of patterns.");
-  }
-  checkExclude(exclude);
+  const exclude = parsePatterns(record.exclude, "exclude", "Exclude");
+  const include = parsePatterns(record.include, "include", "Include");
   for (const [name, number] of [
     ["Token budget", maxTokensBudget],
     ["Timeout", timeoutMinutes],
@@ -85,6 +92,7 @@ export function parseSettings(value: unknown): Settings {
     effort,
     noFilter,
     exclude,
+    include,
     maxTokensBudget: maxTokensBudget as number,
     timeoutMinutes: timeoutMinutes as number,
   };
@@ -99,17 +107,21 @@ function wholeNumber(form: FormData, field: string, label: string): number {
   return value;
 }
 
-/** Reads the settings form. Exclude patterns are one per line. */
-export function parseForm(form: FormData): Settings {
-  const exclude = String(form.get("exclude") ?? "")
+function lines(form: FormData, field: string): string[] {
+  return String(form.get(field) ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== "");
+}
+
+/** Reads the settings form. Exclude and include patterns are one per line. */
+export function parseForm(form: FormData): Settings {
   return parseSettings({
     model: String(form.get("model") ?? "").trim(),
     effort: String(form.get("effort") ?? ""),
     noFilter: form.get("noFilter") === "on",
-    exclude,
+    exclude: lines(form, "exclude"),
+    include: lines(form, "include"),
     maxTokensBudget: wholeNumber(form, "maxTokensBudget", "Token budget"),
     timeoutMinutes: wholeNumber(form, "timeoutMinutes", "Timeout"),
   });
