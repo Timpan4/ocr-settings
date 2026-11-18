@@ -4,10 +4,14 @@
 
 export const EFFORTS = ["", "low", "medium", "high"] as const;
 export type Effort = (typeof EFFORTS)[number];
+// The model's reasoning effort. "" sends none, so the model uses its default.
+export const REASONINGS = ["", "low", "medium", "high"] as const;
+export type Reasoning = (typeof REASONINGS)[number];
 
 export interface Settings {
   model: string;
   effort: Effort;
+  reasoning: Reasoning;
   noFilter: boolean;
   exclude: string[];
   include: string[];
@@ -18,6 +22,7 @@ export interface Settings {
 export const SETTING_KEYS = [
   "model",
   "effort",
+  "reasoning",
   "noFilter",
   "exclude",
   "include",
@@ -35,6 +40,10 @@ const WHOLE = /^[0-9]+$/;
 
 function isEffort(value: unknown): value is Effort {
   return EFFORTS.some((effort) => effort === value);
+}
+
+function isReasoning(value: unknown): value is Reasoning {
+  return REASONINGS.some((reasoning) => reasoning === value);
 }
 
 function parsePatterns(value: unknown, key: "exclude" | "include", label: string): string[] {
@@ -57,9 +66,10 @@ export function parseSettings(value: unknown): Settings {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new SettingsError("settings.json must be a JSON object.");
   }
-  // Rollout: settings.json on main gains include only after this page and the
-  // workflow are released, so a missing include reads as [], as the workflow does.
-  const record: Record<string, unknown> = { include: [], ...(value as Record<string, unknown>) };
+  // Rollout: settings.json on main gains include and reasoning only after this
+  // page and the workflow are released, so a missing include reads as [] and a
+  // missing reasoning as "", as the workflow does.
+  const record: Record<string, unknown> = { include: [], reasoning: "", ...(value as Record<string, unknown>) };
   for (const key of Object.keys(record)) {
     if (!(SETTING_KEYS as readonly string[]).includes(key)) {
       throw new SettingsError(`settings.json has an unknown key: ${key}.`);
@@ -68,11 +78,12 @@ export function parseSettings(value: unknown): Settings {
   for (const key of SETTING_KEYS) {
     if (!(key in record)) throw new SettingsError(`settings.json is missing ${key}.`);
   }
-  const { model, effort, noFilter, maxTokensBudget, timeoutMinutes } = record;
+  const { model, effort, reasoning, noFilter, maxTokensBudget, timeoutMinutes } = record;
   if (typeof model !== "string" || !MODEL.test(model)) {
     throw new SettingsError("Model must be a model name such as gpt-6.1-sol.");
   }
   if (!isEffort(effort)) throw new SettingsError("Effort must be default, low, medium or high.");
+  if (!isReasoning(reasoning)) throw new SettingsError("Reasoning must be default, low, medium or high.");
   if (typeof noFilter !== "boolean") throw new SettingsError("noFilter must be true or false.");
   const exclude = parsePatterns(record.exclude, "exclude", "Exclude");
   const include = parsePatterns(record.include, "include", "Include");
@@ -90,6 +101,7 @@ export function parseSettings(value: unknown): Settings {
   return {
     model,
     effort,
+    reasoning,
     noFilter,
     exclude,
     include,
@@ -119,6 +131,7 @@ export function parseForm(form: FormData): Settings {
   return parseSettings({
     model: String(form.get("model") ?? "").trim(),
     effort: String(form.get("effort") ?? ""),
+    reasoning: String(form.get("reasoning") ?? ""),
     noFilter: form.get("noFilter") === "on",
     exclude: lines(form, "exclude"),
     include: lines(form, "include"),

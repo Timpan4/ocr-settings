@@ -13,6 +13,7 @@ const { privateKey, publicKey } = generateKeyPairSync("rsa", {
 const settings: Settings = {
   model: "gpt-6.1-sol",
   effort: "",
+  reasoning: "",
   noFilter: false,
   exclude: [],
   include: [],
@@ -69,6 +70,19 @@ describe("GitHub App", () => {
     const { include: _, ...legacy } = settings;
     const { store } = fakeGitHub(200, JSON.stringify(legacy));
     expect(await store.read()).toEqual({ settings, problem: null, sha: "blob1" });
+  });
+
+  test("reads a settings.json from before reasoning as the model default", async () => {
+    const { reasoning: _, ...legacy } = settings;
+    const { store } = fakeGitHub(200, JSON.stringify(legacy));
+    expect(await store.read()).toEqual({ settings, problem: null, sha: "blob1" });
+  });
+
+  test("reports an invalid reasoning instead of failing", async () => {
+    const { store } = fakeGitHub(200, JSON.stringify({ ...settings, reasoning: "xhigh" }));
+    const file = await store.read();
+    expect(file.settings).toBeNull();
+    expect(file.problem).toBe("Reasoning must be default, low, medium or high.");
   });
 
   test("reports an invalid include list instead of failing", async () => {

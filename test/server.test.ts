@@ -10,6 +10,7 @@ const COMMIT = "c".repeat(40);
 const current: Settings = {
   model: "gpt-6.1-sol",
   effort: "",
+  reasoning: "",
   noFilter: false,
   exclude: [],
   include: [],
@@ -42,6 +43,7 @@ const valid = {
   sha: SHA,
   model: "gpt-6.1-sol",
   effort: "high",
+  reasoning: "low",
   exclude: "dist/**\n\n *.lock \n",
   include: " **/*.md \r\n\r\ndocs/**/*.txt",
   maxTokensBudget: "500000",
@@ -54,12 +56,16 @@ function handler(store: SettingsStore) {
 
 describe("settings page", () => {
   test("shows the committed values with or without the /settings prefix", async () => {
-    const { store } = fakeStore({ settings: { ...current, exclude: ["<script>"], include: ["**/*.md", "docs/**"] } });
+    const { store } = fakeStore({
+      settings: { ...current, reasoning: "medium", exclude: ["<script>"], include: ["**/*.md", "docs/**"] },
+    });
     for (const path of ["/settings/", "/"]) {
       const response = await handler(store)(new Request(`http://127.0.0.1:8080${path}`));
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).toContain('value="gpt-6.1-sol"');
+      // Effort is the default, so the only selected medium is the reasoning one.
+      expect(body).toMatch(/<select id="reasoning"[^>]*><option value="">Model default<\/option><option value="low">low<\/option><option value="medium" selected>/);
       expect(body).toContain('spellcheck="false">**/*.md\ndocs/**</textarea>');
       expect(body).toContain("&lt;script&gt;");
       expect(body).not.toContain("<script>");
@@ -76,13 +82,16 @@ describe("settings page", () => {
     expect(writes[0]?.settings).toEqual({
       model: "gpt-6.1-sol",
       effort: "high",
+      reasoning: "low",
       noFilter: false,
       exclude: ["dist/**", "*.lock"],
       include: ["**/*.md", "docs/**/*.txt"],
       maxTokensBudget: 500000,
       timeoutMinutes: 30,
     });
-    expect(writes[0]?.message).toStartWith("chore(settings): update effort, exclude, include, maxTokensBudget, timeoutMinutes");
+    expect(writes[0]?.message).toStartWith(
+      "chore(settings): update effort, reasoning, exclude, include, maxTokensBudget, timeoutMinutes",
+    );
     expect(writes[0]?.message).toContain("Saved by tim@example.com");
   });
 
@@ -106,6 +115,8 @@ describe("settings page", () => {
     for (const bad of [
       { ...valid, model: "$(id)" },
       { ...valid, effort: "max" },
+      { ...valid, reasoning: "xhigh" },
+      { ...valid, reasoning: 'low"}' },
       { ...valid, exclude: "a,b" },
       { ...valid, exclude: "src/**\u0000--no-filter" },
       { ...valid, include: "**/*.{md,mdx}" },

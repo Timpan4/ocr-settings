@@ -1,5 +1,13 @@
 import { ConflictError, type SettingsStore } from "./github";
-import { changedKeys, EFFORTS, MAX_TIMEOUT_MINUTES, parseForm, type Settings, SettingsError } from "./settings";
+import {
+  changedKeys,
+  EFFORTS,
+  MAX_TIMEOUT_MINUTES,
+  parseForm,
+  REASONINGS,
+  type Settings,
+  SettingsError,
+} from "./settings";
 
 export interface HandlerOptions {
   store: SettingsStore;
@@ -15,6 +23,7 @@ const COMMIT_SHA = /^[0-9a-f]{40}$/;
 const DEFAULTS: Settings = {
   model: "gpt-6.1-sol",
   effort: "",
+  reasoning: "",
   noFilter: false,
   exclude: [],
   include: [],
@@ -43,6 +52,11 @@ function page({ settings, sha, repoLabel, notice }: PageState): string {
     const label = effort === "" ? "OCR default" : effort;
     const selected = effort === settings.effort ? " selected" : "";
     return `<option value="${effort}"${selected}>${label}</option>`;
+  }).join("");
+  const reasoningOptions = REASONINGS.map((reasoning) => {
+    const label = reasoning === "" ? "Model default" : reasoning;
+    const selected = reasoning === settings.reasoning ? " selected" : "";
+    return `<option value="${reasoning}"${selected}>${label}</option>`;
   }).join("");
   const banner = notice
     ? `<p class="notice ${notice.kind}" role="${notice.kind === "error" ? "alert" : "status"}">${notice.html}</p>`
@@ -82,8 +96,11 @@ ${banner}
 <p class="hint" id="model-hint">ChatGPT model for the Sign in with ChatGPT provider.</p>
 <input type="text" id="model" name="model" required value="${escapeHtml(settings.model)}" aria-describedby="model-hint" autocomplete="off" spellcheck="false">
 <label for="effort">Review effort</label>
-<p class="hint" id="effort-hint"><code>ocr review --effort</code>. OCR's default is medium.</p>
+<p class="hint" id="effort-hint"><code>ocr review --effort</code>: review rounds per file group, 1, 2 or 3 for low, medium or high. A later round runs only when the previous one found something. OCR's default is medium.</p>
 <select id="effort" name="effort" aria-describedby="effort-hint">${effortOptions}</select>
+<label for="reasoning">Model reasoning</label>
+<p class="hint" id="reasoning-hint">The model's reasoning effort, sent as <code>reasoning.effort</code>. Lower reasoning also makes the model read and search less. Model default sends nothing.</p>
+<select id="reasoning" name="reasoning" aria-describedby="reasoning-hint">${reasoningOptions}</select>
 <label class="check"><input type="checkbox" name="noFilter"${settings.noFilter ? " checked" : ""}><span>Keep all comments (<code>--no-filter</code>)</span></label>
 <p class="hint">Skips OCR's LLM post-filtering, so reviews post more comments.</p>
 <label for="exclude">Exclude patterns</label>
